@@ -94,7 +94,7 @@ app.get("/allStudents", (req, res) => {
   });
 });
 
-app.put("/editStudent/", (req, res) => {
+app.put("/editStudent", (req, res) => {
    mongoClient.connect(dbURL, (err, client) => {
     if (err) throw err;
     client
@@ -111,7 +111,7 @@ app.put("/editStudent/", (req, res) => {
   });
 });
 
-app.delete("/deleteStudent/", (req, res) => {
+app.delete("/deleteStudent", (req, res) => {
   mongoClient.connect(dbURL, (err, client) => {
     if (err) throw err;
     client
