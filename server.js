@@ -1,77 +1,129 @@
 const http = require("http");
 const express = require("express");
 const app = express();
+const cors = require('cors');
+const mongodb = require("mongodb");
+const mongoClient = mongodb.MongoClient;
+const objectID = mongodb.ObjectID;
 const bodyparser = require("body-parser");
-const port = 4000;
+const dotenv=require("dotenv");
+dotenv.config();
 app.use(bodyparser.json());
+app.use(cors({
+    origin: '*'
+}));
+
+const dbURL = "mongodb+srv://padma:pa6789@cluster0.rkjto.mongodb.net/schoolRecords?retryWrites=true&w=majority";
+//const dbURL=" mongodb://127.0.0.1:27017/?"
+
 let studentDetails = [];
 let staffDetails = [];
+const port = process.env.PORT || 5000;
+app.listen(port, () => console.log("your app is running in", port));
 
+app.get("/", (req, res) => {
+  res.send("<h1>Simple GET & POST request app..! </h1>");
+});
 app.post("/studentCreation", (req, res) => {
-  studentDetails.push(req.body);
-  res.json({ message: "student created" });
+  mongoClient.connect(dbURL, (err, client) => {
+    client
+      .db("schoolRecords")
+      .collection("students")
+      .insertOne(req.body, (err, data) => {
+        if (err) throw err;
+        client.close();
+        console.log("student Created successfully, Connection closed");
+        res.status(200).json({
+          message: "student Created..!!",
+        });
+      });
+  });
 });
 
 app.post("/staffCreation", (req, res) => {
-  staffDetails.push(req.body);
-  res.json({ message: "staff created" });
+   mongoClient.connect(dbURL, (err, client) => {
+    client
+      .db("schoolRecords")
+      .collection("staff")
+      .insertOne(req.body, (err, data) => {
+        if (err) throw err;
+        client.close();
+        console.log("staff Created successfully, Connection closed");
+        res.status(200).json({
+          message: "staff Created..!!",
+        });
+      });
+  });
 });
 
 app.get("/allStaff", (req, res) => {
-  for (let i = 0; i < staffDetails.length; i++) {
-    let count = 0;
-    for (let j = 0; j < studentDetails.length; j++) {
-      if (staffDetails[i].id === studentDetails[j].staff_id) {
-        count += 1;
-      }
-    }
-    staffDetails[i].student_count = count;
-  }
-  let staff = staffDetails.map((data) => {
-    return {
-      id: data.id,
-      name: data.name,
-      email: data.email,
-      student_count: data.student_count,
-    };
+ mongoClient.connect(dbURL, (err, client) => {
+    if (err) throw err;
+    let db = client.db("schoolRecords");
+    db.collection("staff")
+      .find()
+      .toArray()
+      .then((data) => {
+        res.status(200).json(data);
+      })
+      .catch((err) => {
+        res.status(404).json({
+          message: "No data Found or some error happen",
+          error: err,
+        });
+      });
   });
-  res.json(staff);
 });
 
 app.get("/allStudents", (req, res) => {
-  let students = studentDetails.map((data) => {
-    return {
-      id: data.id,
-      name: data.name,
-      staff_id: data.staff_id,
-    };
-  });
-  res.json(students);
-});
-
-app.put("/editStudent/:id", (req, res) => {
-  studentDetails.forEach((elem) => {
-    if (elem.id == req.params.id) {
-      elem.name = req.body.name;
-      res.status(200).send({
-        message: "User Updated..!",
+  mongoClient.connect(dbURL, (err, client) => {
+    if (err) throw err;
+    let db = client.db("schoolRecords");
+    db.collection("students")
+      .find()
+      .toArray()
+      .then((data) => {
+        res.status(200).json(data);
+      })
+      .catch((err) => {
+        res.status(404).json({
+          message: "No data Found or some error happen",
+          error: err,
+        });
       });
-    }
   });
-  res.send("student name is edited");
 });
 
-app.delete("/deleteStudent/:id", (req, res) => {
-  let filterval = studentDetails.filter((val) => {
-    if (val.id == req.params.id) {
-      return val;
-    }
-  })[0];
-  let index = studentDetails.indexOf(filterval);
-  studentDetails.splice(index, 1);
-  res.json({ message: "student deleted" });
+app.put("/editStudent/", (req, res) => {
+   mongoClient.connect(dbURL, (err, client) => {
+    if (err) throw err;
+    client
+      .db("schoolRecords")
+      .collection("students")
+      .findOneAndUpdate({ id:req.body.id }, { $set:req.body })
+      .then((data) => {
+        console.log("students data update successfully..!!");
+        client.close();
+        res.status(200).json({
+          message: "student data updated..!!",
+        });
+      });
+  });
 });
-app.listen(process.env.PORT || port, () => {
-  console.log(`the server is listening ${port}`);
+
+app.delete("/deleteStudent/", (req, res) => {
+  mongoClient.connect(dbURL, (err, client) => {
+    if (err) throw err;
+    client
+      .db("schoolRecords")
+      .collection("students")
+      .deleteOne({ id:req.body.id }, (err, data) => {
+        if (err) throw err;
+        client.close();
+        res.status(200).json({
+          message: "student deleted...!!",
+        });
+      });
+  });
 });
 
